@@ -23,9 +23,6 @@ class ReservationRepository {
         ]);
     }
 
-    // Prende tutte le prenotazioni di un utente cercando per nome e cognome
-    // Nota: idealmente il sistema dovrebbe salvare l'ID utente nella prenotazione,
-    // ma qui usiamo i dati che abbiamo nel token
     public function getReservationsByUser(string $first_name, string $last_name): array {
         $pdo = Connection::getInstance($this->config);
         $stmt = $pdo->prepare('
@@ -37,5 +34,27 @@ class ReservationRepository {
         ');
         $stmt->execute(['first_name' => $first_name, 'last_name' => $last_name]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function updateReservation(string $id, int $parking_lot_id, string $license_plate, string $start_time, string $end_time): bool {
+        $pdo = Connection::getInstance($this->config);
+        $stmt = $pdo->prepare('
+            UPDATE reservation 
+            SET parking_lot_id = :parking_lot_id, license_plate = :license_plate, start_time = :start_time, end_time = :end_time
+            WHERE id = :id
+        ');
+        return $stmt->execute([
+            'id' => $id,
+            'parking_lot_id' => $parking_lot_id,
+            'license_plate' => $license_plate,
+            'start_time' => $start_time,
+            'end_time' => $end_time
+        ]);
+    }
+
+    public function deleteReservation(string $id): bool {
+        $pdo = Connection::getInstance($this->config);
+        $stmt = $pdo->prepare('DELETE FROM reservation WHERE id = :id');
+        return $stmt->execute(['id' => $id]);
     }
 }

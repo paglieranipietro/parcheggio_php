@@ -42,8 +42,11 @@ $app->group('/api/v1', function ($group) {
     $group->get('/auth/me', AuthController::class . ':me');
     $group->post('/parking-lots', ParkingLotController::class . ':create');
     $group->delete('/parking-lots/{id}', ParkingLotController::class . ':delete');
+
     $group->post('/reservations', ReservationController::class . ':create');
     $group->get('/reservations/user', ReservationController::class . ':listByUser');
+    $group->put('/reservations/{id}', ReservationController::class . ':update');
+    $group->delete('/reservations/{id}', ReservationController::class . ':delete');
 })->add(new JwtMiddleware($config['JWT_SECRET']));
 
 $app->options('/{routes:.+}', function ($request, $response, $args) {
@@ -51,7 +54,6 @@ $app->options('/{routes:.+}', function ($request, $response, $args) {
 });
 
 $app->addRoutingMiddleware();
-
 $app->addErrorMiddleware(true, true, true);
 
 $app->add(function ($request, $handler) {
