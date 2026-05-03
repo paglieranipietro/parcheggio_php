@@ -1,17 +1,23 @@
 <?php
 
-// Il namespace deve essere uguale al nome della cartella
+//Il namespace deve essere uguale alla cartella che contiene il file
 namespace Util;
 use PDO;
 
-// Classe che gestisce la connessione al database
-// Usa il pattern Singleton (una sola connessione per tutta l'app)
+
+/**
+ * Classe per gestire la connessione al database
+ */
+
 class Connection
 {
-    // Attributo statico perché appartiene alla classe, non all'oggetto
-    private static PDO $pdo;
+    //Statico perchè è un attributo di classe istanziato una sola volta
+    private static ?PDO $pdo = null; // Forza il Singleton reale
 
-    // Costruttore privato per evitare di creare oggetti di questa classe
+
+    /**
+     * Costruttore privato per evitare la creazione di oggetti
+     */
     private function __construct()
     {
 
@@ -19,15 +25,16 @@ class Connection
 
     public static function getInstance($config): PDO
     {
-        // Se la connessione non esiste ancora, la crea
-        if (!isset($pdo)) {
-            $DSN = 'mysql:host=' . $config['DB_HOST'] . ';dbname=' . $config['DB_NAME'];
-            $pdo = new PDO($DSN, $config['DB_USER'], $config['DB_PASS']);
-            // Imposta il modo di restituzione dei dati come array associativo
-            $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        }
+        if (self::$pdo === null) {
+            $DSN = 'mysql:host=' . $config['DB_HOST'] . ';dbname=' . $config['DB_NAME'] . ';charset=utf8mb4';
+            self::$pdo = new PDO($DSN, $config['DB_USER'], $config['DB_PASS'], [
+                PDO::ATTR_PERSISTENT => true, // Mantiene la connessione aperta tra le richieste
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+            ]);
 
-        return $pdo;
+        }
+        return self::$pdo;
     }
 }
 

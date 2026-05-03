@@ -14,38 +14,43 @@ class ReservationController {
         $this->config = $container->get('config');
     }
 
+    private function jsonResponse(Response $response, array $data, int $status = 200): Response {
+        $response->getBody()->write(json_encode($data));
+        return $response->withHeader('Content-Type', 'application/json')->withStatus($status);
+    }
+
     public function create(Request $request, Response $response): Response {
         $data = $request->getParsedBody();
         $user = $request->getAttribute('jwt_payload');
         $id = Uuid::uuid4()->toString();
         $repo = new ReservationRepository($this->config);
 
+        $price = isset($data['price']) ? (float)$data['price'] : 0.00;
+
         $success = $repo->createReservation(
-            $id,
-            $data['parking_lot_id'],
-            $user->nome,
-            $user->cognome,
-            $data['license_plate'],
-            $data['start_time'],
-            $data['end_time']
+            $id, $data['parking_lot_id'], $user->nome, $user->cognome,
+            $data['license_plate'], $data['start_time'], $data['end_time'], $price
         );
 
         if ($success) {
-            $response->getBody()->write(json_encode(['message' => 'Prenotazione creata con successo']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(201);
+            return $this->jsonResponse($response, ['message' => 'Prenotazione creata con successo'], 201);
         }
-
-        $response->getBody()->write(json_encode(['error' => 'Errore nella creazione della prenotazione']));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        return $this->jsonResponse($response, ['error' => 'Errore nella creazione'], 500);
     }
 
     public function listByUser(Request $request, Response $response): Response {
         $user = $request->getAttribute('jwt_payload');
         $repo = new ReservationRepository($this->config);
-        $reservations = $repo->getReservationsByUser($user->nome, $user->cognome);
+        return $this->jsonResponse($response, $repo->getReservationsByUser($user->nome, $user->cognome));
+    }
 
-        $response->getBody()->write(json_encode($reservations));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+    public function getById(Request $request, Response $response, array $args): Response {
+        $repo = new ReservationRepository($this->config);
+        $reservation = $repo->getReservationById($args['id']);
+        if ($reservation) {
+            return $this->jsonResponse($response, $reservation);
+        }
+        return $this->jsonResponse($response, ['error' => 'Non trovata'], 404);
     }
 
     public function update(Request $request, Response $response, array $args): Response {
@@ -53,21 +58,17 @@ class ReservationController {
         $data = $request->getParsedBody();
         $repo = new ReservationRepository($this->config);
 
+        $price = isset($data['price']) ? (float)$data['price'] : 0.00;
+
         $success = $repo->updateReservation(
-            $id,
-            $data['parking_lot_id'],
-            $data['license_plate'],
-            $data['start_time'],
-            $data['end_time']
+            $id, $data['parking_lot_id'], $data['license_plate'],
+            $data['start_time'], $data['end_time'], $price
         );
 
         if ($success) {
-            $response->getBody()->write(json_encode(['message' => 'Prenotazione aggiornata']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+            return $this->jsonResponse($response, ['message' => 'Prenotazione aggiornata']);
         }
-
-        $response->getBody()->write(json_encode(['error' => 'Errore aggiornamento']));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        return $this->jsonResponse($response, ['error' => 'Errore aggiornamento'], 500);
     }
 
     public function delete(Request $request, Response $response, array $args): Response {
@@ -75,11 +76,8 @@ class ReservationController {
         $repo = new ReservationRepository($this->config);
 
         if ($repo->deleteReservation($id)) {
-            $response->getBody()->write(json_encode(['message' => 'Prenotazione cancellata']));
-            return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+            return $this->jsonResponse($response, ['message' => 'Prenotazione cancellata']);
         }
-
-        $response->getBody()->write(json_encode(['error' => 'Errore cancellazione']));
-        return $response->withHeader('Content-Type', 'application/json')->withStatus(500);
+        return $this->jsonResponse($response, ['error' => 'Errore cancellazione'], 500);
     }
 }
